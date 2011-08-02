@@ -3,7 +3,7 @@
 import sys
 import locale
 import twitter
-import redis
+#import redis
 import json
 import time
 from random import shuffle

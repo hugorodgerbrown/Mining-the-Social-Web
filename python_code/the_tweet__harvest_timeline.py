@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import sys
 import time
 import twitter
@@ -7,7 +6,6 @@ import couchdb
 from couchdb.design import ViewDefinition
 from twitter__login import login
 from twitter__util import makeTwitterRequest
-
 
 def usage():
     print 'Usage: $ %s timeline_name [max_pages] [user]' % (sys.argv[0], )
@@ -22,7 +20,6 @@ def usage():
     print '\t* See the streaming/search API for additional options to harvest tweets.'
 
     exit()
-
 
 if len(sys.argv) < 2 or sys.argv[1] not in ('public', 'home', 'user'):
     usage()
@@ -47,8 +44,8 @@ if TIMELINE_NAME == 'user':
     KW['id'] = USER  # id or screen name
 if TIMELINE_NAME == 'home' and MAX_PAGES > 4:
     MAX_PAGES = 4
-if TIMELINE_NAME == 'user' and MAX_PAGES > 16:
-    MAX_PAGES = 16
+if TIMELINE_NAME == 'user' and MAX_PAGES > 50:
+    MAX_PAGES = 50
 if TIMELINE_NAME == 'public':
     MAX_PAGES = 1
 
@@ -56,37 +53,38 @@ t = login()
 
 # Establish a connection to a CouchDB database
 
-server = couchdb.Server('http://localhost:5984')
-DB = 'tweets-%s-timeline' % (TIMELINE_NAME, )
+server = couchdb.Server('http://root:root@localhost:5984')
+
+DB = 'tweets-%s-timeline3' % (TIMELINE_NAME, )
 
 if USER:
     DB = '%s-%s' % (DB, USER)
 
 try:
     db = server.create(DB)
+	
 except couchdb.http.PreconditionFailed, e:
 
     # Already exists, so append to it, keeping in mind that duplicates could occur
-
     db = server[DB]
 
     # Try to avoid appending duplicate data into the system by only retrieving tweets 
     # newer than the ones already in the system. A trivial mapper/reducer combination 
     # allows us to pull out the max tweet id which guards against duplicates for the 
     # home and user timelines. It has no effect for the public timeline
-
-
-    def idMapper(doc):
-        yield (None, doc['id'])
-
-
-    def maxFindingReducer(keys, values, rereduce):
-        return max(values)
-
-
-    view = ViewDefinition('index', 'max_tweet_id', idMapper, maxFindingReducer,
-                          language='python')
-    view.sync(db)
+#    def idMapper(doc):
+#        yield (None, doc['id'])
+#
+#    def maxFindingReducer(keys, values, rereduce):
+#		return max(values)
+#
+#    view = ViewDefinition('index',  # index name
+#        'max_tweet_id',             # view name
+#        idMapper,                   # map function
+#        maxFindingReducer,          # reduce function
+#        language='python')          # view language
+#      
+#    view.sync(db)
     KW['since_id'] = int([_id for _id in db.view('index/max_tweet_id')][0].value)
 
 # Harvest tweets for the given timeline.
